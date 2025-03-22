@@ -14,7 +14,44 @@ function App() {
     setInputText(e.target.value);
   }
 
-  const handleDownload = async () =>{
+  const handleDownload = async () => {
+    const itemsToDownload = Object.keys(selectedItems).filter(downloadLink => selectedItems[downloadLink]);
+
+    if (itemsToDownload.length === 0) {
+      return;
+    }
+
+    setIsLoading(true);
+
+   try{
+         const response = await fetch('https://localhost:7032/Scraper/DownloadVideos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify( itemsToDownload
+        ),      
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to download');
+      }  
+        setErrors(null);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'download.zip');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        setErrors('Error: ' + err.message);
+      console.error('Error: ', err);
+    } finally {
+      setIsLoading(false);
+    }
     
   }
 
@@ -47,13 +84,13 @@ function App() {
     }
   }
 
-  const handleSelectItem = (id) => {
+  const handleSelectItem = (downloadLink) => {
     setSelectedItems({
       ...selectedItems,
-      [id]: !selectedItems[id]
+      [downloadLink]: !selectedItems[downloadLink]
     });
 
-    if(selectAll && selectedItems[id] == true)
+    if(selectAll && selectedItems[downloadLink] == true)
     {
       setSelectAll(false);
     }
@@ -65,7 +102,7 @@ function App() {
 
     const newSelectedItems = {};
     tableData.forEach(item => {
-      newSelectedItems[item.id] = newSelectAll;
+      newSelectedItems[item.downloadLink] = newSelectAll;
     });
     setSelectedItems(newSelectedItems);
   }
@@ -123,13 +160,13 @@ function App() {
             </thead>
           <tbody>
             {tableData.sort(f => f.upvoteRatio).map((item) => (
-              <tr key={item.id} className={selectedItems[item.id] ? "selected-row" : ""}>
+              <tr key={item.id} className={selectedItems[item.downloadLink] ? "selected-row" : ""}>
                 <td hidden>{item.downloadLink}</td>
                 <td className="select-column">
                   <input
                   type="checkbox"
-                  checked={selectedItems[item.id] || false}
-                  onChange={() => handleSelectItem(item.id)}/>
+                  checked={selectedItems[item.downloadLink] || false}
+                  onChange={() => handleSelectItem(item.downloadLink)}/>
                 </td>
                 <td>{item.upvoteRatio}</td>
                 <td className="checkbox-cell">
